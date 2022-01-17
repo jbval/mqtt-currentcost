@@ -24,29 +24,31 @@ MQTT_TOPIC = "maison/conso"
 ser = None
 try:
     ser = serial.Serial(port=TTYUSB, baudrate=57600, timeout=30)
-except serial.SerialException, msg:
+except serial.SerialException as msg:
     print("Failed to connect to CurrentCost meter :: " + str(msg))
     exit(1)
 print("Connected to " + TTYUSB)
 
-# connection a mqtt 
+# connection a mqtt
 mqttc = mqtt.Client()
 mqttc.connect(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE_INTERVAL)
 
 
-nbIterations = 0
-
-while nbIterations >= 0:
-    line = ser.readline()  # lit le flux xml
-    print line
+while True:
+    # lit le flux xml
+    line = ser.readline()
+    print(line)
     parsedData = xmltodict.parse(line)
     jsonData = json.dumps(parsedData, indent=2)
-    
-    #print jsonData
+    res = None
+    # print jsonData
     if line.find("hist") == -1:
-      	mqttc.publish(MQTT_TOPIC, payload=jsonData)
+        res = mqttc.publish(MQTT_TOPIC + "/realTime", payload=jsonData)
     else:
-      	mqttc.publish(MQTT_TOPIC + "/daily", payload=jsonData)
-    nbIterations +=1
+        res = mqttc.publish(MQTT_TOPIC + "/daily", payload=jsonData)
+
+    if res.rc != mqtt.MQTT_ERR_SUCCESS:
+        print("Failed to publish message :: " + str(res.rc))
+        mqttc.reconnect()
 ser.close()
 exit(0)
