@@ -4,21 +4,18 @@
 #
 
 import os
-import requests
 import serial
-import re
-import time
 import xmltodict
 import json
 import paho.mqtt.client as mqtt
 
 # constantes a modifier
-TTYUSB = "/dev/ttyUSB_CURRENTCOST"
+TTYUSB = os.environ.get('TTYUSB') or "/dev/ttyUSB_CURRENTCOST"
 
-MQTT_HOST = "192.168.1.144"
-MQTT_PORT = 11884
+MQTT_HOST = os.environ.get('MQTT_HOST') or "192.168.1.144"
+MQTT_PORT = int(os.environ.get('MQTT_PORT') or 11884) 
 MQTT_KEEPALIVE_INTERVAL = 45
-MQTT_TOPIC = "maison/conso"
+MQTT_TOPIC = os.environ.get('MQTT_TOPIC') or "maison/conso"
 
 # connexion au port serie
 ser = None
@@ -42,7 +39,7 @@ while True:
     jsonData = json.dumps(parsedData, indent=2)
     res = None
     # print jsonData
-    if line.find("hist") == -1:
+    if jsonData.find("hist") == -1:
         res = mqttc.publish(MQTT_TOPIC + "/realTime", payload=jsonData)
     else:
         res = mqttc.publish(MQTT_TOPIC + "/daily", payload=jsonData)
